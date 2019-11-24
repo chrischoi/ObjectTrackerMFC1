@@ -214,8 +214,8 @@ void COpencvSdiVideoTemplateView::OnPlayFile()
 		return;
 	}
 
-	m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
-	m_cvTracker->init(getCurrentFrame(), m_roi);
+	//m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
+	//m_cvTracker->init(getCurrentFrame(), m_roi);
 
 	double fps = getVideo().get(CAP_PROP_FPS);
 	if (fps <= 0.0) fps = 30.0;
@@ -243,12 +243,14 @@ void COpencvSdiVideoTemplateView::OnPlayFile()
 
 			setCurrentFrame( img );
 
-			//m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
-			bool ret = m_cvTracker->update(img, m_roi);
-			if (ret) {
-				rectangle( getCurrentFrame(), m_roi, Scalar(255, 0, 0), 2, 1);
-//				m_tracker.m_rect.SetRect(roi.x, roi.y, roi.x + roi.width, roi.y + roi.height);
-				//TRACE("ROI = x=%lf y=%lf w=%lf h=%lf\n", roi.x, roi.y, roi.width, roi.height);
+			if (!m_roi.empty()) {
+				//m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
+				bool ret = m_cvTracker->update(img, m_roi);
+				if (ret) {
+					rectangle(getCurrentFrame(), m_roi, Scalar(255, 0, 0), 2, 1);
+					//				m_tracker.m_rect.SetRect(roi.x, roi.y, roi.x + roi.width, roi.y + roi.height);
+									//TRACE("ROI = x=%lf y=%lf w=%lf h=%lf\n", roi.x, roi.y, roi.width, roi.height);
+				}
 			}
 
 			m_imgWrapper.replace(getCurrentFrame());
@@ -386,12 +388,12 @@ void COpencvSdiVideoTemplateView::OnInitialUpdate()
 		//	}
 		//}
 
-		if (roi.IsRectEmpty()) {
-			int cx = srcW / 2;
-			int cy = srcH / 2;
-			// 없으면 화면 중앙에
-			m_tracker.m_rect.SetRect(cx - 50, cy - 50, cx + 50, cy + 50);
-		}
+		//if (roi.IsRectEmpty()) {
+		//	int cx = srcW / 2;
+		//	int cy = srcH / 2;
+		//	// 없으면 화면 중앙에
+		//	m_tracker.m_rect.SetRect(cx - 50, cy - 50, cx + 50, cy + 50);
+		//}
 
 	}
 	else {
@@ -430,14 +432,14 @@ void COpencvSdiVideoTemplateView::OnLButtonDown(UINT nFlags, CPoint point)
 		//CRect rt(m_tracker.m_rect);
 		//Rect2d roi(rt.left, rt.top, rt.Width(), rt.Height());
 		m_roi = CRect2Rect2d(m_tracker.m_rect);
-
+		m_cvTracker->init(getCurrentFrame(), m_roi);
 		//delete m_cvTracker;
 		//m_cvTracker = TrackerCSRT::create();
 		//bool ret = 	m_cvTracker->init(getCurrentFrame(), m_roi);
 		//if (!ret) {
 		//	AfxMessageBox(L"tracker init failed!!!");
 		//}
-		m_cvTracker->update(getCurrentFrame(), m_roi);
+		//m_cvTracker->update(getCurrentFrame(), m_roi);
 	}
 
 	CScrollView::OnLButtonDown(nFlags, point);
