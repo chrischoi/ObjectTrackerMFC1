@@ -212,4 +212,6 @@ void COpencvSdiVideoTemplateApp::OnFileOpen()
 	CString sPath = fileDlg.GetPathName();
 
 	OpenDocumentFile(sPath);
+
+
 }
