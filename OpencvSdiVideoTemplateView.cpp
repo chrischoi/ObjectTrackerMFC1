@@ -39,6 +39,9 @@ using namespace std;
 
 */
 
+Ptr<Tracker> m_cvTracker = TrackerCSRT::create();
+Rect2d m_roi = Rect2d();
+
 VideoCapture& COpencvSdiVideoTemplateView::getVideo()
 {
 	COpencvSdiVideoTemplateDoc* pDoc = GetDocument();
@@ -194,6 +197,10 @@ int COpencvSdiVideoTemplateView::processPendingMessages()
 //	InvalidateRect(NULL);
 //}
 
+Rect2d CRect2Rect2d(CRect& rt)
+{
+	return Rect2d(rt.left, rt.top, rt.Width(), rt.Height());
+}
 
 void COpencvSdiVideoTemplateView::OnPlayFile()
 {
@@ -207,10 +214,8 @@ void COpencvSdiVideoTemplateView::OnPlayFile()
 		return;
 	}
 
-	CRect rt(m_tracker.m_rect);
-	Rect2d roi(rt.left, rt.top, rt.Width(), rt.Height());
-	Ptr<Tracker> tracker = TrackerCSRT::create();
-	tracker->init(getCurrentFrame(), roi);
+	m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
+	m_cvTracker->init(getCurrentFrame(), m_roi);
 
 	double fps = getVideo().get(CAP_PROP_FPS);
 	if (fps <= 0.0) fps = 30.0;
@@ -238,10 +243,11 @@ void COpencvSdiVideoTemplateView::OnPlayFile()
 
 			setCurrentFrame( img );
 
-			bool ret = tracker->update(img, roi);
+			//m_roi = Rect2d(CRect2Rect2d(m_tracker.m_rect));
+			bool ret = m_cvTracker->update(img, m_roi);
 			if (ret) {
-				rectangle( getCurrentFrame(), roi, Scalar(255, 0, 0), 2, 1);
-				m_tracker.m_rect.SetRect(roi.x, roi.y, roi.x + roi.width, roi.y + roi.height);
+				rectangle( getCurrentFrame(), m_roi, Scalar(255, 0, 0), 2, 1);
+//				m_tracker.m_rect.SetRect(roi.x, roi.y, roi.x + roi.width, roi.y + roi.height);
 				//TRACE("ROI = x=%lf y=%lf w=%lf h=%lf\n", roi.x, roi.y, roi.width, roi.height);
 			}
 
@@ -359,26 +365,26 @@ void COpencvSdiVideoTemplateView::OnInitialUpdate()
 
 		CRect roi;
 
-		// 얼굴 영역 찾고 있으면 얼굴 영역으로 설정
-		string cccName = "haarcascade_frontalface_default.xml";
-		CascadeClassifier ccc(cccName);
-		if (ccc.empty()) {
-			TRACE("%s 로드 실패!!\n", cccName.c_str());
-		}
-		else {
-			vector<Rect> faces;
-			ccc.detectMultiScale(getCurrentFrame(), faces);
+		// 얼굴 영역 찾고 있으면 얼굴 영역으로 설정 -> 안 하는게 낫다
+		//string cccName = "haarcascade_frontalface_default.xml";
+		//CascadeClassifier ccc(cccName);
+		//if (ccc.empty()) {
+		//	TRACE("%s 로드 실패!!\n", cccName.c_str());
+		//}
+		//else {
+		//	vector<Rect> faces;
+		//	ccc.detectMultiScale(getCurrentFrame(), faces);
 
-			// 영역 크기로 sort
-			sort(faces.begin(), faces.end(), [](Rect& r1, Rect& r2) {
-				return r1.area() > r2.area();
-			});
+		//	// 영역 크기로 sort
+		//	sort(faces.begin(), faces.end(), [](Rect& r1, Rect& r2) {
+		//		return r1.area() > r2.area();
+		//	});
 
-			if (!faces.empty()) {
-				roi = CRect(faces[0].x, faces[0].y, faces[0].x + faces[0].width, faces[0].y + faces[0].height);
-				m_tracker.m_rect = roi;
-			}
-		}
+		//	if (!faces.empty()) {
+		//		roi = CRect(faces[0].x, faces[0].y, faces[0].x + faces[0].width, faces[0].y + faces[0].height);
+		//		m_tracker.m_rect = roi;
+		//	}
+		//}
 
 		if (roi.IsRectEmpty()) {
 			int cx = srcW / 2;
@@ -420,17 +426,26 @@ void COpencvSdiVideoTemplateView::OnLButtonDown(UINT nFlags, CPoint point)
 		InvalidateRect(m_tracker.m_rect, FALSE);
 	}
 
+	if (getVideo().isOpened()) {
+		//CRect rt(m_tracker.m_rect);
+		//Rect2d roi(rt.left, rt.top, rt.Width(), rt.Height());
+		m_roi = CRect2Rect2d(m_tracker.m_rect);
+
+		//delete m_cvTracker;
+		//m_cvTracker = TrackerCSRT::create();
+		//bool ret = 	m_cvTracker->init(getCurrentFrame(), m_roi);
+		//if (!ret) {
+		//	AfxMessageBox(L"tracker init failed!!!");
+		//}
+		m_cvTracker->update(getCurrentFrame(), m_roi);
+	}
+
 	CScrollView::OnLButtonDown(nFlags, point);
 }
 
 
+// 트랙커 사용하면 호출되지 않는다!!!
 void COpencvSdiVideoTemplateView::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	CClientDC dc(this);
-	m_tracker.Draw(&dc);
-
-//	InvalidateRect(m_tracker.m_rect );
-	Invalidate();
-
 	CScrollView::OnLButtonUp(nFlags, point);
 }
